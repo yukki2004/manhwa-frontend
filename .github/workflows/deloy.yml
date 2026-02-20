@@ -40,20 +40,34 @@ jobs:
             ${{ secrets.DOCKER_USERNAME }}/manhwa-frontend:latest
 
   deploy:
-    needs: build-and-push
-    runs-on: ubuntu-latest
-    steps:
-      - name: SSH and Deploy to VPS
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          envs: TAG=${{ needs.build-and-push.outputs.short_sha }}, DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
-          script: |
-            cd /var/www/frontend-manhwa
-        
-            sudo DOCKER_USERNAME=$DOCKER_USERNAME TAG=$TAG docker compose pull frontend
-            sudo DOCKER_USERNAME=$DOCKER_USERNAME TAG=$TAG docker compose up -d frontend
-            sudo docker image rm $(sudo docker images -f "dangling=true" -f "reference=$DOCKER_USERNAME/manhwa-frontend" -q) || true
-            echo "✅ Deploy thành công bản commit: $TAG"
+      needs: build-and-push
+      runs-on: ubuntu-latest
+      steps:
+        - name: Checkout code
+          uses: actions/checkout@v4
+
+        - name: Copy docker-compose.yml to server
+          uses: appleboy/scp-action@v0.1.7
+          with:
+            host: ${{ secrets.SSH_HOST }}
+            username: ${{ secrets.SSH_USER }}
+            key: ${{ secrets.SSH_PRIVATE_KEY }}
+            source: "docker-compose.yml"
+            target: "/var/www/frontend-manhwa"
+            strip_components: 0 
+
+        - name: SSH and Deploy to VPS
+          uses: appleboy/ssh-action@v1.0.3
+          with:
+            host: ${{ secrets.SSH_HOST }}
+            username: ${{ secrets.SSH_USER }}
+            key: ${{ secrets.SSH_PRIVATE_KEY }}
+            envs: TAG=${{ needs.build-and-push.outputs.short_sha }}, DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
+            script: |
+              cd /var/www/frontend-manhwa
+              
+              sudo DOCKER_USERNAME=$DOCKER_USERNAME TAG=$TAG docker compose pull frontend
+              sudo DOCKER_USERNAME=$DOCKER_USERNAME TAG=$TAG docker compose up -d frontend
+              
+              sudo docker image rm $(sudo docker images -f "dangling=true" -f "reference=$DOCKER_USERNAME/manhwa-frontend" -q) || true
+              echo "✅ Deploy thành công bản commit: $TAG"
