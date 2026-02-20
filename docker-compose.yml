@@ -1,7 +1,10 @@
 services:
   frontend:
     image: ${DOCKER_USERNAME}/manhwa-frontend:${TAG:-latest}
-    container_name: manhwa-frontend
+    container_name: manhwa-frontend-prod
+    env_file:
+      - .env
+      
     ports:
       - "8081:80"
     restart: always
