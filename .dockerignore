@@ -13,9 +13,7 @@ build
 .gitignore
 .github
 # Env files (CI sẽ inject)
-.env
-.env.*
-!.env.example
+
 
 # Docker files (không cần trong build context)
 Dockerfile
